@@ -23,6 +23,16 @@ pub fn avian_plugin(app: &mut App) {
     .register_authoritative_component::<AngularVelocity>()
     .register_predicted_resource::<Collisions>()
     .add_systems(
+        RollbackSchedule::Rollback,
+        (|mut commands: Commands, col: Option<Res<Collisions>>| {
+            if col.is_none() {
+                commands.init_resource::<Collisions>();
+                commands.insert_resource(ResourceHistory::<Collisions>::default());
+            }
+        })
+        .after(RollbackLoadSet),
+    )
+    .add_systems(
         bevy::app::RunFixedMainLoop,
         (
             avian3d::sync::position_to_transform,

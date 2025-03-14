@@ -99,9 +99,9 @@ fn send_current_tick(
     mut spawns: EventReader<FromClient<Connect>>,
     tick: Res<GameTick>,
 ) {
-    for &FromClient { client_id, .. } in spawns.read() {
+    for &FromClient { client_entity, .. } in spawns.read() {
         commands.send_event(ToClients {
-            mode: SendMode::Direct(client_id),
+            mode: SendMode::Direct(client_entity),
             event: CurrentTick(*tick),
         });
     }

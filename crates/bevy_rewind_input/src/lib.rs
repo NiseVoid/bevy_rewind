@@ -17,7 +17,7 @@ pub use client::InputAuthority;
 #[cfg(feature = "server")]
 mod server;
 #[cfg(feature = "server")]
-pub use server::ClientEntities;
+pub use server::InputTarget;
 
 use bevy::{
     ecs::{component::Mutable, entity::MapEntities, intern::Interned, schedule::ScheduleLabel},

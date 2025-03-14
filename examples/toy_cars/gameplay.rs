@@ -181,15 +181,20 @@ fn claim_car(mut commands: Commands, car: Single<Entity, With<OurCar>>) {
 fn spawn_client_cars(
     mut commands: Commands,
     mut spawns: EventReader<FromClient<LocalEntities>>,
-    mut entity_map: ResMut<ClientEntityMap>,
-    mut input_clients: ResMut<ClientEntities>,
+    mut entity_map: Query<&mut ClientEntityMap>,
 ) {
     for &FromClient {
-        client_id,
-        event: LocalEntities { car: client_entity },
+        client_entity,
+        event: LocalEntities {
+            car: client_local_entity,
+        },
     } in spawns.read()
     {
-        let server_entity = commands
+        let Ok(mut entity_map) = entity_map.get_mut(client_entity) else {
+            continue;
+        };
+
+        let car_entity = commands
             .spawn((
                 Car,
                 Replicated,
@@ -198,16 +203,11 @@ fn spawn_client_cars(
             ))
             .id();
 
-        input_clients.insert(client_id, server_entity);
-        entity_map.insert(
-            client_id,
-            ClientMapping {
-                server_entity,
-                client_entity,
-            },
-        );
+        commands
+            .entity(client_entity)
+            .insert((InputTarget::all(car_entity), ReplicatedClient));
 
-        commands.trigger(StartReplication(client_id));
+        entity_map.insert(car_entity, client_local_entity);
     }
 }
 

@@ -1,16 +1,11 @@
 //! Logic specific to server apps
 
+use std::marker::PhantomData;
+
 use crate::{HistoryFor, InputHistory, InputQueue, InputQueueSet, InputTrait, TickSource};
 
-use bevy::{
-    ecs::schedule::InternedScheduleLabel, platform_support::collections::HashMap, prelude::*,
-};
+use bevy::{ecs::schedule::InternedScheduleLabel, prelude::*};
 use bevy_replicon::prelude::*;
-
-/// A map from [`ClientId`] to the [`Entity`] that has the [`InputQueue`] for that client.
-/// Inputs from clients that are not in this map will be ignored
-#[derive(Resource, Deref, DerefMut, Default)]
-pub struct ClientEntities(HashMap<ClientId, Entity>);
 
 pub(super) struct InputQueueServerPlugin<T: InputTrait, Tick: TickSource> {
     schedule: InternedScheduleLabel,
@@ -29,42 +24,69 @@ impl<T: InputTrait, Tick: TickSource> InputQueueServerPlugin<T, Tick> {
 
 impl<T: InputTrait, Tick: TickSource> Plugin for InputQueueServerPlugin<T, Tick> {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ClientEntities>()
-            .add_systems(
-                PreUpdate,
-                receive_inputs::<T, Tick>
-                    .run_if(server_running)
-                    .after(ServerSet::Receive)
-                    .in_set(InputQueueSet::Network),
-            )
-            .add_systems(
-                PostUpdate,
-                send_inputs::<T, Tick>
-                    .run_if(server_running)
-                    .before(ServerSet::Send)
-                    .in_set(InputQueueSet::Network),
-            )
-            .add_systems(
-                self.schedule,
-                load_inputs::<T, Tick>
-                    .run_if(server_running)
-                    .in_set(InputQueueSet::Load)
-                    // In case the configured schedule is PreUpdate
-                    .after(InputQueueSet::Network),
-            );
+        app.add_systems(
+            PreUpdate,
+            receive_inputs::<T, Tick>
+                .run_if(server_running)
+                .after(ServerSet::Receive)
+                .in_set(InputQueueSet::Network),
+        )
+        .add_systems(
+            PostUpdate,
+            send_inputs::<T, Tick>
+                .run_if(server_running)
+                .before(ServerSet::Send)
+                .in_set(InputQueueSet::Network),
+        )
+        .add_systems(
+            self.schedule,
+            load_inputs::<T, Tick>
+                .run_if(server_running)
+                .in_set(InputQueueSet::Load)
+                // In case the configured schedule is PreUpdate
+                .after(InputQueueSet::Network),
+        );
+    }
+}
+
+/// The entity to redirect the input to, use () as T to route all inputs, or an InputType
+/// to route only that type. If both are specified, the InputType one takes precedence
+#[derive(Component, Deref)]
+pub struct InputTarget<T = ()>(#[deref] Entity, PhantomData<T>);
+
+impl InputTarget<()> {
+    /// Reroute all input for this client to the specified entity.
+    /// If a specific-variant is also on this same entity, it will take precedence.
+    pub fn all(entity: Entity) -> Self {
+        Self(entity, PhantomData)
+    }
+}
+
+impl<T> InputTarget<T> {
+    /// Reroute input for this specific type to the specified entity.
+    /// Takes precedence over [`InputTarget::all`] if both are present.
+    pub fn specific(entity: Entity) -> Self {
+        Self(entity, PhantomData)
     }
 }
 
 fn receive_inputs<T: InputTrait, Tick: TickSource>(
+    specific_input_target: Query<&InputTarget<T>>,
+    generic_input_target: Query<&InputTarget>,
     mut events: EventReader<FromClient<InputHistory<T>>>,
     mut query: Query<&mut InputQueue<T>>,
-    clients: Res<ClientEntities>,
     cur_tick: Res<Tick>,
 ) {
-    for FromClient { client_id, event } in events.read() {
-        let Some(&entity) = clients.get(client_id) else {
-            continue;
-        };
+    for FromClient {
+        client_entity,
+        event,
+    } in events.read()
+    {
+        let entity = specific_input_target
+            .get(*client_entity)
+            .map(|e| **e)
+            .or_else(|_| generic_input_target.get(*client_entity).map(|e| **e))
+            .unwrap_or(*client_entity);
         let Ok(mut input_queue) = query.get_mut(entity) else {
             continue;
         };
@@ -136,29 +158,26 @@ mod tests {
         let e1 = app.world_mut().spawn(InputQueue::<A>::default()).id();
         let e2 = app.world_mut().spawn(InputQueue::<A>::default()).id();
         let e3 = app.world_mut().spawn(InputQueue::<A>::default()).id();
-        let e4 = app.world_mut().spawn(InputQueue::<A>::default()).id();
-
-        let mut client_entities = ClientEntities::default();
-        client_entities.insert(ClientId::new(1), e1);
-        client_entities.insert(ClientId::new(12), e2);
-        client_entities.insert(ClientId::new(84), e3);
+        let e4 = app
+            .world_mut()
+            .spawn((InputQueue::<A>::default(), InputTarget::all(e3)))
+            .id();
 
         app.add_event::<FromClient<InputHistory<A>>>()
             .add_systems(Update, receive_inputs::<A, Tick>)
-            .insert_resource(client_entities)
             .insert_resource(Tick(5));
 
         app.world_mut().send_event_batch([
             FromClient {
-                client_id: ClientId::new(1),
+                client_entity: e1,
                 event: hist(4, [A(1), A(2), A(3)]),
             },
             FromClient {
-                client_id: ClientId::new(2),
+                client_entity: e2,
                 event: hist(5, [A(1), A(2), A(3)]),
             },
             FromClient {
-                client_id: ClientId::new(12),
+                client_entity: e4,
                 event: hist(6, [A(1), A(2), A(3)]),
             },
         ]);
@@ -295,8 +314,6 @@ mod tests {
         let mut app = App::new();
 
         let e1 = app.world_mut().spawn(InputQueue::<A>::default()).id();
-        let mut client_entities = ClientEntities::default();
-        client_entities.insert(ClientId::new(1), e1);
 
         let mut server = RepliconServer::default();
         server.set_running(true);
@@ -304,11 +321,10 @@ mod tests {
             .add_event::<ToClients<HistoryFor<A>>>()
             .add_plugins(InputQueueServerPlugin::<A, Tick>::new(Update.intern()))
             .insert_resource(server)
-            .insert_resource(client_entities)
             .insert_resource(Tick(5));
 
         app.world_mut().send_event_batch([FromClient {
-            client_id: ClientId::new(1),
+            client_entity: e1,
             event: hist(4, [A(1), A(2), A(3)]),
         }]);
 
