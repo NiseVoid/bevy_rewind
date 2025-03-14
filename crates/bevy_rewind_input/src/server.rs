@@ -71,8 +71,7 @@ impl<T> InputTarget<T> {
 }
 
 fn receive_inputs<T: InputTrait, Tick: TickSource>(
-    specific_input_target: Query<&InputTarget<T>>,
-    generic_input_target: Query<&InputTarget>,
+    input_target: Query<AnyOf<(&InputTarget<T>, &InputTarget)>>,
     mut events: EventReader<FromClient<InputHistory<T>>>,
     mut query: Query<&mut InputQueue<T>>,
     cur_tick: Res<Tick>,
@@ -82,10 +81,9 @@ fn receive_inputs<T: InputTrait, Tick: TickSource>(
         event,
     } in events.read()
     {
-        let entity = specific_input_target
+        let entity = input_target
             .get(*client_entity)
-            .map(|e| **e)
-            .or_else(|_| generic_input_target.get(*client_entity).map(|e| **e))
+            .map(|(specific, all)| specific.map(|e| **e).unwrap_or(**all.unwrap()))
             .unwrap_or(*client_entity);
         let Ok(mut input_queue) = query.get_mut(entity) else {
             continue;
