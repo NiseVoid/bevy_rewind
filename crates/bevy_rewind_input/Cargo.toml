@@ -1,0 +1,21 @@
+[package]
+name = "bevy_rewind_input"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["client", "server"]
+client = ["bevy_replicon/client"]
+server = ["bevy_replicon/server"]
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy.workspace = true
+
+bevy_replicon.workspace = true
+
+serde.workspace = true
+arraydeque.workspace = true
+arrayvec.workspace = true

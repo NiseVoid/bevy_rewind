@@ -1,0 +1,17 @@
+[package]
+name = "bevy_rewind_entity_management"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[features]
+default = ["client"]
+client = ["dep:bevy_rewind"]
+
+[dependencies]
+bevy.workspace = true
+bevy_replicon.workspace = true
+
+bevy_rewind = {workspace = true, optional = true}

@@ -1,0 +1,11 @@
+[package]
+name = "bevy_rewind"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy.workspace = true
+bevy_replicon = { workspace = true, features = ["client"] }
