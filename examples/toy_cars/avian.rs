@@ -21,12 +21,12 @@ pub fn avian_plugin(app: &mut App) {
     .register_authoritative_component::<Rotation>()
     .register_authoritative_component::<LinearVelocity>()
     .register_authoritative_component::<AngularVelocity>()
-    .register_predicted_resource::<Collisions>()
+    .register_predicted_resource::<ContactGraph>()
     .add_systems(
         RollbackSchedule::Rollback,
-        (|mut commands: Commands, col: Option<Res<Collisions>>| {
+        (|mut commands: Commands, col: Option<Res<ContactGraph>>| {
             if col.is_none() {
-                commands.init_resource::<Collisions>();
+                commands.init_resource::<ContactGraph>();
                 commands.insert_resource(ResourceHistory::<Collisions>::default());
             }
         })

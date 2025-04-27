@@ -10,11 +10,11 @@ use bevy::{
     prelude::*,
 };
 use bevy_replicon::{
-    core::{
+    prelude::RepliconClient,
+    shared::{
         replication::replication_registry::{ctx::DespawnCtx, ReplicationRegistry},
         replicon_tick::RepliconTick,
     },
-    prelude::RepliconClient,
 };
 use bevy_rewind::{
     Predicted, RollbackFrames, RollbackSchedule, RollbackStoreSet, StoreScheduleLabel, TickSource,
@@ -110,7 +110,7 @@ impl<Reason: SpawnReason> Plugin for SpawnPlugin<Reason> {
 #[derive(Component)]
 #[component(on_add=track_unused)]
 #[component(on_remove=untrack_unused)]
-#[require(Disabled(||Disabled), UnusedAt)]
+#[require(Disabled, UnusedAt)]
 pub struct Despawned;
 
 fn track_unused(mut world: DeferredWorld, ctx: HookContext) {
@@ -141,7 +141,7 @@ fn reenable(mut world: DeferredWorld, ctx: HookContext) {
 /// These entities are despawned if they aren't re-enabled before [`RollbackSchedule::BackToPresent`]
 #[derive(Component)]
 #[component(on_remove = reenable)]
-#[require(Disabled(||Disabled))]
+#[require(Disabled)]
 pub struct Unspawned;
 
 /// A component tracking when an entity became unused, it will be despawned once this tick is
@@ -213,7 +213,7 @@ fn clean_spawned_entities_system<Reason: SpawnReason>(
 
     let removed = removed
         .read()
-        .collect::<bevy::platform_support::collections::HashSet<Entity>>();
+        .collect::<bevy::platform::collections::HashSet<Entity>>();
 
     entities.0.retain(|_key, entity| {
         !removed.contains(&entity.id) && tick < entity.last_spawned + max_ticks

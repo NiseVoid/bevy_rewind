@@ -1,7 +1,7 @@
 use crate::connect::ConnectionState;
 
 use bevy::prelude::*;
-use bevy_replicon::{core::replicon_tick::RepliconTick, prelude::server_running};
+use bevy_replicon::{prelude::server_running, shared::replicon_tick::RepliconTick};
 use serde::{Deserialize, Serialize};
 
 pub fn tick_plugin(app: &mut App) {

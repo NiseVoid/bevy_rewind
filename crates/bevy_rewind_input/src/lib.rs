@@ -24,7 +24,7 @@ use bevy::{
     prelude::*,
     reflect::TypePath,
 };
-use bevy_replicon::{core::replicon_tick::RepliconTick, prelude::*};
+use bevy_replicon::{prelude::*, shared::replicon_tick::RepliconTick};
 use serde::{Deserialize, Serialize};
 
 /// The source of the current simulation tick
@@ -51,8 +51,8 @@ impl<T: InputTrait, Tick: TickSource> InputQueuePlugin<T, Tick> {
 
 impl<T: InputTrait, Tick: TickSource> Plugin for InputQueuePlugin<T, Tick> {
     fn build(&self, app: &mut App) {
-        app.add_mapped_client_event::<InputHistory<T>>(ChannelKind::Unreliable)
-            .add_mapped_server_event::<HistoryFor<T>>(ChannelKind::Unreliable);
+        app.add_mapped_client_event::<InputHistory<T>>(Channel::Unreliable)
+            .add_mapped_server_event::<HistoryFor<T>>(Channel::Unreliable);
 
         #[cfg(feature = "client")]
         app.add_plugins(client::InputQueueClientPlugin::<T, Tick>::new(

@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use bevy::prelude::*;
 
-pub(super) fn load_and_clear_resource_prediction<T: Resource + Clone + Debug + PartialEq>(
+pub(super) fn load_and_clear_resource_prediction<T: Resource + Clone + Debug>(
     mut commands: Commands,
     t: Option<ResMut<T>>,
     mut hist: ResMut<ResourceHistory<T>>,
@@ -13,9 +13,7 @@ pub(super) fn load_and_clear_resource_prediction<T: Resource + Clone + Debug + P
     match hist.get(**previous_tick) {
         TickData::Value(value) => {
             if let Some(mut t) = t {
-                if *t != *value {
-                    *t = value.clone();
-                }
+                *t = value.clone();
             } else {
                 commands.insert_resource(value.clone());
             }

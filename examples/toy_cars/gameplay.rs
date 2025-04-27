@@ -16,7 +16,7 @@ pub fn gameplay_plugin(app: &mut App) {
         // Set up replication
         .replicate::<Car>()
         .replicate::<Ball>()
-        .add_client_event::<LocalEntities>(RepliconChannel::from(ChannelKind::Unordered))
+        .add_client_event::<LocalEntities>(Channel::Unordered)
         .add_systems(
             OnEnter(ConnectionState::InGame),
             (
@@ -34,23 +34,22 @@ pub fn gameplay_plugin(app: &mut App) {
             (move_cars, spawn_ball.run_if(server_running))
                 .run_if(in_state(ConnectionState::InGame)),
         )
-        .add_systems(
-            SimulationPostUpdate,
-            process_goals.ignore_param_missing().after(PhysicsSet::Sync),
-        )
+        .add_systems(SimulationPostUpdate, process_goals.after(PhysicsSet::Sync))
         .add_systems(
             Update,
-            (
-                add_car_models,
-                add_ball_model,
-                follow_car.ignore_param_missing(),
-            )
-                .run_if(in_state(ConnectionState::InGame)),
+            (add_car_models, add_ball_model, follow_car).run_if(in_state(ConnectionState::InGame)),
         );
 }
 
 #[derive(Component, Default, Serialize, Deserialize)]
-#[require(GameInput, Predicted, RigidBody(|| RigidBody::Dynamic), Friction(|| Friction::ZERO), Collider(|| Collider::from(Cuboid::new(0.5, 0.35, 1.))), ColliderDensity(|| ColliderDensity(10.)))]
+#[require(
+    GameInput,
+    Predicted,
+    RigidBody::Dynamic,
+    Friction::ZERO,
+    Collider::from(Cuboid::new(0.5, 0.35, 1.)),
+    ColliderDensity(10.)
+)]
 struct Car;
 
 #[derive(Component)]
@@ -58,7 +57,12 @@ struct Car;
 pub struct OurCar;
 
 #[derive(Component, Serialize, Deserialize)]
-#[require(Predicted, RigidBody(|| RigidBody::Dynamic), Collider(|| Collider::from(Sphere::default())), ColliderDensity(|| ColliderDensity(0.1)))]
+#[require(
+    Predicted,
+    RigidBody::Dynamic,
+    Collider::from(Sphere::default()),
+    ColliderDensity(0.1)
+)]
 struct Ball;
 
 #[derive(Component)]

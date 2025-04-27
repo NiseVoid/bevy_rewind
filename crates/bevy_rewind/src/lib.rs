@@ -24,11 +24,11 @@ use bevy::{
 };
 use bevy_replicon::{
     client::{confirm_history::EntityReplicated, server_mutate_ticks::MutateTickReceived},
-    core::{
+    prelude::*,
+    shared::{
         replication::{command_markers::MarkerConfig, track_mutate_messages::TrackAppExt},
         replicon_tick::RepliconTick,
     },
-    prelude::*,
 };
 
 /// The source of the current simulation tick
@@ -272,7 +272,7 @@ mod tests {
     fn init_app() -> App {
         let mut app = App::new();
         app.add_plugins((
-            RepliconCorePlugin,
+            RepliconSharedPlugin,
             RollbackPlugin::<Tick> {
                 store_schedule: NoTy.intern(),
                 rollback_schedule: FixedUpdate.intern(),
@@ -478,8 +478,7 @@ pub trait RollbackApp {
         &mut self,
     ) -> &mut Self;
     /// Register a predicted-only resource
-    fn register_predicted_resource<T: Resource + Clone + Debug + PartialEq>(&mut self)
-        -> &mut Self;
+    fn register_predicted_resource<T: Resource + Clone + Debug>(&mut self) -> &mut Self;
 
     /// Register a predicted-only component with a custom load function
     fn register_predicted_component_with_load<
@@ -529,9 +528,7 @@ impl RollbackApp for App {
             history::remove_authoritative_history::<T>,
         )
     }
-    fn register_predicted_resource<T: Resource + Clone + Debug + PartialEq>(
-        &mut self,
-    ) -> &mut Self {
+    fn register_predicted_resource<T: Resource + Clone + Debug>(&mut self) -> &mut Self {
         self.world_mut().init_resource::<ResourceHistory<T>>();
 
         // Register store systems

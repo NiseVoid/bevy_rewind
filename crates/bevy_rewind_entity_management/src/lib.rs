@@ -16,8 +16,8 @@ pub use server_shim::EntityManagementPlugin;
 
 use std::marker::PhantomData;
 
-use bevy::{ecs::system::SystemParam, platform_support::collections::HashMap, prelude::*};
-use bevy_replicon::core::replicon_tick::RepliconTick;
+use bevy::{ecs::system::SystemParam, platform::collections::HashMap, prelude::*};
+use bevy_replicon::shared::replicon_tick::RepliconTick;
 
 /// A plugin adding handling of entity reuse for a specific [`SpawnReason`]
 pub struct SpawnPlugin<Reason: SpawnReason>(PhantomData<Reason>);

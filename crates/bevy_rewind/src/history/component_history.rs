@@ -5,7 +5,7 @@ use std::num::NonZero;
 
 use bevy::{
     ecs::component::ComponentId,
-    platform_support::collections::HashMap,
+    platform::collections::HashMap,
     prelude::{Deref, DerefMut},
     ptr::{Ptr, PtrMut},
 };

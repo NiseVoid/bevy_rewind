@@ -3,7 +3,7 @@ use crate::InputTrait;
 use std::collections::VecDeque;
 
 use bevy::{ecs::entity::MapEntities, prelude::*};
-use bevy_replicon::core::replicon_tick::RepliconTick;
+use bevy_replicon::shared::replicon_tick::RepliconTick;
 use serde::{Deserialize, Serialize};
 
 /// The input history for an input. Used when sending data to the server, also useful for rollback

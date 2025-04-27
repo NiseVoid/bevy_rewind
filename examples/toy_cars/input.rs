@@ -12,9 +12,7 @@ pub fn game_input_plugin(app: &mut App) {
     ))
     .add_systems(
         FixedPreUpdate,
-        generate_inputs
-            .ignore_param_missing()
-            .run_if(in_state(ConnectionState::InGame)),
+        generate_inputs.run_if(in_state(ConnectionState::InGame)),
     );
 }
 

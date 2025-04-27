@@ -5,12 +5,12 @@ use std::{fmt::Debug, mem::ManuallyDrop, num::NonZero};
 
 use bevy::{
     ecs::component::{ComponentId, Mutable},
-    platform_support::collections::HashMap,
+    platform::collections::HashMap,
     prelude::*,
 };
 use bevy_replicon::{
     bytes::Bytes,
-    core::{
+    shared::{
         replication::{
             deferred_entity::DeferredEntity,
             replication_registry::{
@@ -46,7 +46,7 @@ pub(crate) fn write_authoritative_history<
     rule_fns: &RuleFns<T>,
     entity: &mut DeferredEntity,
     cursor: &mut Bytes,
-) -> bevy_replicon::postcard::Result<()> {
+) -> Result<()> {
     let value = rule_fns.deserialize(ctx, cursor)?;
     let frames = entity
         .world()

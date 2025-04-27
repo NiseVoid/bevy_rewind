@@ -2,7 +2,7 @@ use crate::{InputHistory, InputTrait};
 
 use arraydeque::{ArrayDeque, Wrapping};
 use bevy::prelude::*;
-use bevy_replicon::core::replicon_tick::RepliconTick;
+use bevy_replicon::shared::replicon_tick::RepliconTick;
 
 /// A queue containing inputs
 #[derive(Component, Debug)]

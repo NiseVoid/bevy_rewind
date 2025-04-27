@@ -16,8 +16,8 @@ match_same_arms = "warn"
 semicolon_if_nothing_returned = "warn"
 
 [workspace.dependencies]
-bevy = { version = "0.16.0-dev", default-features = false }
-bevy_replicon = { version = "0.31", default-features = false }
+bevy = { version = "0.16.0", default-features = false }
+bevy_replicon = { version = "0.33", default-features = false }
 
 bevy_rewind = { path = "crates/bevy_rewind" }
 
@@ -27,7 +27,7 @@ arrayvec = { version = "0.7", default-features = false, features = ["serde"] }
 
 [package]
 name = "bevy_rewind_examples"
-edition = "2021"
+edition = "2024"
 
 [profile.dev]
 opt-level = 1
@@ -35,15 +35,15 @@ lto = "off"
 debug-assertions = true
 
 [dev-dependencies]
-bevy = { version = "0.16.0-dev", features = ["wayland"] }
-bevy_replicon = {version = "0.31", features = ["client", "server"]}
+bevy = { version = "0.16.0", features = ["wayland"] }
+bevy_replicon = {version = "0.33", features = ["client", "server"]}
 bevy_rewind.workspace = true
 bevy_rewind_input.path = "crates/bevy_rewind_input"
 bevy_rewind_entity_management.path = "crates/bevy_rewind_entity_management"
 serde.workspace = true
 
 # Only for examples
-bevy_replicon_example_backend = "0.31"
+bevy_replicon_example_backend = "0.33"
 avian3d = {version = "0.2", features = ["serialize"]}
 
 [[example]]
@@ -51,11 +51,6 @@ name = "toy_cars"
 path = "examples/toy_cars/main.rs"
 
 [patch.crates-io]
-bevy = {git = "https://github.com/bevyengine/bevy"}
-bevy_math = {git = "https://github.com/bevyengine/bevy"}
-bevy_reflect = {git = "https://github.com/bevyengine/bevy"}
-avian3d = {git = "https://github.com/NiseVoid/avian", branch="bevy-0.16.0-dev"}
-bevy_heavy = {git = "https://github.com/NiseVoid/bevy_heavy", branch="no_std"}
-bevy_transform_interpolation = {git = "https://github.com/NiseVoid/bevy_transform_interpolation"}
-bevy_replicon = {git = "https://github.com/projectharmonia/bevy_replicon", branch = "bevy-0.16-dev"}
-bevy_replicon_example_backend = {git = "https://github.com/projectharmonia/bevy_replicon", branch = "bevy-0.16-dev"}
+avian3d = {git = "https://github.com/Jondolf/avian"}
+bevy_heavy = {git = "https://github.com/Jondolf/bevy_heavy"}
+bevy_transform_interpolation = {git = "https://github.com/Jondolf/bevy_transform_interpolation"}

@@ -5,7 +5,7 @@ use crate::{RollbackFrames, StoreFor, TickData};
 use std::{collections::VecDeque, fmt::Debug};
 
 use bevy::prelude::*;
-use bevy_replicon::core::replicon_tick::RepliconTick;
+use bevy_replicon::shared::replicon_tick::RepliconTick;
 
 /// The prediction history of a resource
 #[derive(Resource, Clone)]
@@ -16,7 +16,10 @@ pub struct ResourceHistory<T> {
 
 impl<T> Default for ResourceHistory<T> {
     fn default() -> Self {
-        Self { list: default(), last_tick: 0 }
+        Self {
+            list: default(),
+            last_tick: 0,
+        }
     }
 }
 
@@ -49,7 +52,11 @@ impl<T> ResourceHistory<T> {
         let ago = (self.last_tick - previous_tick.get()) as usize;
         let len = self.list.len();
         if ago >= len {
-            return if self.list.front().is_some_and(|v| matches!(v, TickData::Removed)) {
+            return if self
+                .list
+                .front()
+                .is_some_and(|v| matches!(v, TickData::Removed))
+            {
                 &TickData::Removed
             } else {
                 &TickData::Missing
@@ -117,8 +124,10 @@ pub(super) fn append_history<T: Resource + Clone + Debug>(
     if hist.list.len() == hist.list.capacity() {
         hist.list.pop_front();
     }
-    hist.list
-        .push_back(t.map(|t| TickData::Value(t.clone())).unwrap_or(TickData::Removed));
+    hist.list.push_back(
+        t.map(|t| TickData::Value(t.clone()))
+            .unwrap_or(TickData::Removed),
+    );
     hist.last_tick = tick.get();
 }
 
@@ -417,7 +426,10 @@ mod tests {
 
     #[test]
     fn keep_one_empty() {
-        let mut history = ResourceHistory::<A> { list: VecDeque::new(), last_tick: 5 };
+        let mut history = ResourceHistory::<A> {
+            list: VecDeque::new(),
+            last_tick: 5,
+        };
 
         // This shouldn't panic or do anything weird
         history.keep_one();

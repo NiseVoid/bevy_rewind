@@ -8,8 +8,8 @@ use crate::tick::GameTick;
 pub fn connect_plugin(app: &mut App) {
     app
         // Connection events
-        .add_client_event::<Connect>(RepliconChannel::from(ChannelKind::Unordered))
-        .add_server_event::<CurrentTick>(RepliconChannel::from(ChannelKind::Unreliable))
+        .add_client_event::<Connect>(Channel::Unordered)
+        .add_server_event::<CurrentTick>(Channel::Unreliable)
         .make_independent::<CurrentTick>()
         // Set up state changes
         .init_state::<ConnectionState>()
@@ -27,11 +27,7 @@ pub fn connect_plugin(app: &mut App) {
         // Menu systems
         .add_systems(
             Update,
-            (
-                change_port.ignore_param_missing(),
-                host_or_join.ignore_param_missing(),
-            )
-                .run_if(in_state(ConnectionState::Menu)),
+            (change_port, host_or_join).run_if(in_state(ConnectionState::Menu)),
         );
 }
 
@@ -53,11 +49,11 @@ struct CurrentTick(GameTick);
 struct PortInput;
 
 #[derive(Component)]
-#[require(Button, Text(|| Text("Host".into())))]
+#[require(Button, Text("Host".into()))]
 struct HostButton;
 
 #[derive(Component)]
-#[require(Button, Text(|| Text("Join".into())))]
+#[require(Button, Text("Join".into()))]
 struct JoinButton;
 
 fn setup_connect_ui(mut commands: Commands) {

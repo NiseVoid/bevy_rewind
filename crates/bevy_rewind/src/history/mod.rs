@@ -19,7 +19,7 @@ mod load;
 #[cfg(test)]
 mod test_utils;
 
-use bevy::{ecs::component::ComponentId, platform_support::collections::HashMap, prelude::*};
+use bevy::{ecs::component::ComponentId, platform::collections::HashMap, prelude::*};
 use component::HistoryComponent;
 
 // TODO: Add some extra safeguards to check types and reduce places to duplicate them

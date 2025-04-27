@@ -17,7 +17,7 @@ use bevy::{
 };
 use bevy_replicon::{
     client::{confirm_history::ConfirmHistory, server_mutate_ticks::ServerMutateTicks},
-    core::replicon_tick::RepliconTick,
+    shared::replicon_tick::RepliconTick,
 };
 
 pub struct HistoryLoadPlugin;
@@ -253,14 +253,17 @@ mod tests {
         },
         load_and_clear_prediction, RollbackRegistry,
     };
-    use bevy::{ecs::component::ComponentId, prelude::*};
+    use bevy::{
+        ecs::{component::ComponentId, system::ScheduleSystem},
+        prelude::*,
+    };
     use bevy_replicon::{
-        client::server_mutate_ticks::ServerMutateTicks, core::replicon_tick::RepliconTick,
+        client::server_mutate_ticks::ServerMutateTicks, shared::replicon_tick::RepliconTick,
     };
 
     fn init_app<C: Component + Clone + PartialEq, M>(
         load_from: u32,
-        system: impl IntoSystemConfigs<M>,
+        system: impl IntoScheduleConfigs<ScheduleSystem, M>,
     ) -> (App, ComponentId) {
         let mut app = App::new();
         app.add_systems(Update, system)
