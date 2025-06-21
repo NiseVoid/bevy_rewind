@@ -17,7 +17,7 @@ semicolon_if_nothing_returned = "warn"
 
 [workspace.dependencies]
 bevy = { version = "0.16.0", default-features = false }
-bevy_replicon = { version = "0.33", default-features = false }
+bevy_replicon = { version = "0.34", default-features = false }
 
 bevy_rewind = { path = "crates/bevy_rewind" }
 
@@ -36,14 +36,14 @@ debug-assertions = true
 
 [dev-dependencies]
 bevy = { version = "0.16.0", features = ["wayland"] }
-bevy_replicon = {version = "0.33", features = ["client", "server"]}
+bevy_replicon = {version = "0.34", features = ["client", "server"]}
 bevy_rewind.workspace = true
 bevy_rewind_input.path = "crates/bevy_rewind_input"
 bevy_rewind_entity_management.path = "crates/bevy_rewind_entity_management"
 serde.workspace = true
 
 # Only for examples
-bevy_replicon_example_backend = "0.33"
+bevy_replicon_example_backend = "0.34"
 avian3d = {version = "0.2", features = ["serialize"]}
 
 [[example]]

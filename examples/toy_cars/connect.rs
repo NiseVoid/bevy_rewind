@@ -10,7 +10,7 @@ pub fn connect_plugin(app: &mut App) {
         // Connection events
         .add_client_event::<Connect>(Channel::Unordered)
         .add_server_event::<CurrentTick>(Channel::Unreliable)
-        .make_independent::<CurrentTick>()
+        .make_event_independent::<CurrentTick>()
         // Set up state changes
         .init_state::<ConnectionState>()
         .enable_state_scoped_entities::<ConnectionState>()

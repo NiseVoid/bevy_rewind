@@ -61,7 +61,7 @@ pub(crate) fn write_authoritative_history<
 
 fn write_history_internal<T: Component + Clone + PartialEq + Debug>(
     component_id: ComponentId,
-    entity: &mut EntityMut,
+    entity: &mut DeferredEntity,
     received_tick: RepliconTick,
     value: T,
     frames: RollbackFrames,
@@ -107,7 +107,11 @@ pub fn remove_authoritative_history<T: Component + Debug>(
     remove_history_internal(ctx.component_id, ctx.message_tick, entity);
 }
 
-fn remove_history_internal(component_id: ComponentId, tick: RepliconTick, entity: &mut EntityMut) {
+fn remove_history_internal(
+    component_id: ComponentId,
+    tick: RepliconTick,
+    entity: &mut DeferredEntity,
+) {
     let Some(mut history) = entity.get_mut::<AuthoritativeHistory>() else {
         warn!(
             "Trying to remove history for {:?} from entity without AuthoritativeHistory",

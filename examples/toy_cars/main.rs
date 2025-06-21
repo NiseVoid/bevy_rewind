@@ -23,7 +23,6 @@ fn main() {
             // Replicon networking
             RepliconPlugins.set(ServerPlugin {
                 tick_policy: TickPolicy::Manual,
-                replicate_after_connect: false,
                 ..default()
             }),
             RepliconExampleClientPlugin,

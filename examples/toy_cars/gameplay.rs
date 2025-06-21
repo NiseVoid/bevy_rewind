@@ -204,7 +204,7 @@ fn spawn_client_cars(mut commands: Commands, mut spawns: EventReader<FromClient<
         entity_map.insert(car_entity, client_local_entity);
         commands.entity(client_entity).insert((
             InputTarget::all(car_entity),
-            ReplicatedClient,
+            AuthorizedClient,
             entity_map,
         ));
     }
