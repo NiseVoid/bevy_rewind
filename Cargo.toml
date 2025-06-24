@@ -44,13 +44,8 @@ serde.workspace = true
 
 # Only for examples
 bevy_replicon_example_backend = "0.34"
-avian3d = {version = "0.2", features = ["serialize"]}
+avian3d = {version = "0.3", features = ["serialize"]}
 
 [[example]]
 name = "toy_cars"
 path = "examples/toy_cars/main.rs"
-
-[patch.crates-io]
-avian3d = {git = "https://github.com/Jondolf/avian"}
-bevy_heavy = {git = "https://github.com/Jondolf/bevy_heavy"}
-bevy_transform_interpolation = {git = "https://github.com/Jondolf/bevy_transform_interpolation"}
