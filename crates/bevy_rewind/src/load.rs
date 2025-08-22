@@ -50,7 +50,7 @@ mod resource_tests {
     use super::*;
 
     use bevy::ecs::system::RunSystemOnce;
-    use bevy_replicon::core::replicon_tick::RepliconTick;
+    use bevy_replicon::shared::replicon_tick::RepliconTick;
 
     #[derive(Resource, Clone, Copy, Deref, DerefMut, PartialEq, Eq, Debug)]
     struct A(u8);

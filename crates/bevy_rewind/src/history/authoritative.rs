@@ -138,9 +138,24 @@ mod tests {
     };
     use crate::history::RollbackRegistry;
     use crate::RollbackFrames;
+    use bevy_replicon::shared::replication::deferred_entity::{DeferredChanges, DeferredEntity};
     use TickData::*;
 
     use bevy::prelude::*;
+
+    trait DeferredEntityScope {
+        fn entity_scope(&mut self, entity: Entity, f: impl Fn(&mut DeferredEntity) -> ());
+    }
+
+    impl DeferredEntityScope for World {
+        fn entity_scope(&mut self, entity: Entity, f: impl Fn(&mut DeferredEntity) -> ()) {
+            let mut changes = DeferredChanges::default();
+            let entity = self.entity_mut(entity);
+            let mut e = DeferredEntity::new(entity, &mut changes);
+            f(&mut e);
+            e.flush();
+        }
+    }
 
     #[test]
     fn write_changes() {
@@ -157,21 +172,25 @@ mod tests {
         let e2 = world.spawn(AuthoritativeHistory::default()).id();
 
         // Write A(1) to e1 for tick 0
-        let mut entity_mut = EntityMut::from(world.entity_mut(e1));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(0), A(1), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal::<A>(comp_a, e, r_tick(0), A(1), frames);
+        });
 
         // Write A(5) to e2 for tick 1
-        let mut entity_mut = EntityMut::from(world.entity_mut(e2));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(1), A(5), frames);
+        world.entity_scope(e2, |e| {
+            write_history_internal::<A>(comp_a, e, r_tick(1), A(5), frames);
+        });
 
         // Write A(2) and A(3) to e1 for tick 1 and 3 respectively
-        let mut entity_mut = EntityMut::from(world.entity_mut(e1));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(1), A(2), frames);
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(3), A(3), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal::<A>(comp_a, e, r_tick(1), A(2), frames);
+            write_history_internal::<A>(comp_a, e, r_tick(3), A(3), frames);
+        });
 
         // Write A(7) to e2 for tick 2
-        let mut entity_mut = EntityMut::from(world.entity_mut(e2));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(2), A(7), frames);
+        world.entity_scope(e2, |e| {
+            write_history_internal::<A>(comp_a, e, r_tick(2), A(7), frames);
+        });
 
         use Missing as M;
 
@@ -236,16 +255,17 @@ mod tests {
 
         let e1 = world.spawn(AuthoritativeHistory::default()).id();
 
-        // Write A(2) to e1 for tick 1
-        let mut entity_mut = EntityMut::from(world.entity_mut(e1));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(1), A(2), frames);
+        world.entity_scope(e1, |e| {
+            // Write A(2) for tick 1
+            write_history_internal::<A>(comp_a, e, r_tick(1), A(2), frames);
 
-        // Write A(4) and A(1) to e1 for tick 3 and 0 respectively
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(3), A(4), frames);
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(0), A(1), frames);
+            // Write A(4) and A(1) for tick 3 and 0 respectively
+            write_history_internal::<A>(comp_a, e, r_tick(3), A(4), frames);
+            write_history_internal::<A>(comp_a, e, r_tick(0), A(1), frames);
 
-        // Write A(3) to e1 for tick 2
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(2), A(3), frames);
+            // Write A(3) for tick 2
+            write_history_internal::<A>(comp_a, e, r_tick(2), A(3), frames);
+        });
 
         use Missing as M;
 
@@ -271,10 +291,11 @@ mod tests {
         let e1 = world.spawn(AuthoritativeHistory::default()).id();
 
         // Write A(1), A(2), and A(3) to e1 for tick 0, 1 and 3 respectively
-        let mut entity_mut = EntityMut::from(world.entity_mut(e1));
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(0), A(1), frames);
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(1), A(2), frames);
-        write_history_internal::<A>(comp_a, &mut entity_mut, r_tick(2), A(3), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal::<A>(comp_a, e, r_tick(0), A(1), frames);
+            write_history_internal::<A>(comp_a, e, r_tick(1), A(2), frames);
+            write_history_internal::<A>(comp_a, e, r_tick(2), A(3), frames);
+        });
 
         use Missing as M;
 
@@ -302,12 +323,13 @@ mod tests {
         let drops = DropList::default();
 
         // Write D(1) to e1 for tick 0
-        let mut entity = EntityMut::from(world.entity_mut(e1));
-        write_history_internal(comp_d, &mut entity, r_tick(0), D::new(1, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(1), D::new(2, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(2), D::new(3, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(3), D::new(4, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(4), D::new(5, &drops), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal(comp_d, e, r_tick(0), D::new(1, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(1), D::new(2, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(2), D::new(3, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(3), D::new(4, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(4), D::new(5, &drops), frames);
+        });
 
         assert_drops(&drops, []);
 
@@ -332,16 +354,18 @@ mod tests {
         let drops = DropList::default();
 
         // Write D(1) to e1 for tick 0
-        let mut entity = EntityMut::from(world.entity_mut(e1));
-        write_history_internal(comp_d, &mut entity, r_tick(10), D::new(1, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(10), D::new(2, &drops), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal(comp_d, e, r_tick(10), D::new(1, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(10), D::new(2, &drops), frames);
+        });
 
         assert_drops(&drops, [1]);
 
-        let mut entity = EntityMut::from(world.entity_mut(e1));
-        write_history_internal(comp_d, &mut entity, r_tick(1), D::new(3, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(2), D::new(4, &drops), frames);
-        write_history_internal(comp_d, &mut entity, r_tick(3), D::new(5, &drops), frames);
+        world.entity_scope(e1, |e| {
+            write_history_internal(comp_d, e, r_tick(1), D::new(3, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(2), D::new(4, &drops), frames);
+            write_history_internal(comp_d, e, r_tick(3), D::new(5, &drops), frames);
+        });
 
         assert_drops(&drops, [1, 3, 4, 5]);
 

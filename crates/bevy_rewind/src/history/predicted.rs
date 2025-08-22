@@ -296,7 +296,7 @@ mod tests {
     use TickData::*;
 
     use bevy::prelude::*;
-    use bevy_replicon::core::replicon_tick::RepliconTick;
+    use bevy_replicon::shared::replicon_tick::RepliconTick;
 
     fn init_app() -> App {
         let mut app = App::new();

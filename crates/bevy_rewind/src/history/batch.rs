@@ -8,7 +8,7 @@ use bevy::{
 
 use super::component::HistoryComponent;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InsertBatch {
     ids: Vec<ComponentId>,
     offsets: Vec<usize>,

@@ -272,7 +272,7 @@ mod tests {
     fn init_app() -> App {
         let mut app = App::new();
         app.add_plugins((
-            RepliconSharedPlugin,
+            RepliconSharedPlugin::default(),
             RollbackPlugin::<Tick> {
                 store_schedule: NoTy.intern(),
                 rollback_schedule: FixedUpdate.intern(),

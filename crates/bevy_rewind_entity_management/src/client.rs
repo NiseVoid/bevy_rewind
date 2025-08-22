@@ -71,17 +71,23 @@ fn replicon_despawn<Tick: TickSource>(ctx: &DespawnCtx, mut entity: EntityWorldM
     entity.despawn();
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Clone, Copy, Deref)]
 struct RemovedByServerAt(RepliconTick);
 
 fn disable_server_despawned_entities<Tick: TickSource>(
     mut commands: Commands,
-    query: Query<(Entity, &RemovedByServerAt)>,
+    query: Query<
+        (Entity, &RemovedByServerAt, Has<Despawned>),
+        Or<(With<Disabled>, Without<Disabled>)>,
+    >,
     tick: Res<Tick>,
+    frames: Res<RollbackFrames>,
 ) {
     let tick = (*tick).into();
-    for (entity, at) in query.iter() {
-        if **at > tick {
+    for (entity, at, is_despawned) in query.iter() {
+        if is_despawned && **at + (frames.history_size() as u32) < tick {
+            commands.entity(entity).despawn();
+        } else if !is_despawned && **at <= tick {
             commands.entity(entity).insert(Despawned);
         }
     }
@@ -107,7 +113,7 @@ impl<Reason: SpawnReason> Plugin for SpawnPlugin<Reason> {
 }
 
 /// A marker for entities that should be despawned once they fall out of history
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 #[component(on_add=track_unused)]
 #[component(on_remove=untrack_unused)]
 #[require(Disabled, UnusedAt)]

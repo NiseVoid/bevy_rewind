@@ -13,11 +13,11 @@ use std::{
 
 use bevy::{
     ecs::component::ComponentId,
-    platform_support::collections::HashSet,
+    platform::collections::HashSet,
     prelude::*,
     ptr::{Ptr, PtrMut},
 };
-use bevy_replicon::{client::confirm_history::ConfirmHistory, core::replicon_tick::RepliconTick};
+use bevy_replicon::{client::confirm_history::ConfirmHistory, shared::replicon_tick::RepliconTick};
 
 // Test components
 
@@ -33,6 +33,7 @@ pub fn a(v: u16) -> TickData<A> {
 #[derive(Component, Clone, PartialEq, Eq, Debug)]
 pub struct B;
 
+#[expect(dead_code)]
 pub fn b() -> TickData<B> {
     TickData::Value(B)
 }

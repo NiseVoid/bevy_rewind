@@ -51,11 +51,11 @@ fn load_and_clear_prediction(
 ) {
     let mut inserts = InsertBatch::new();
     let mut load_queue = CommandQueue::default();
-    let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
     let mut removes = RemoveBatch::new();
 
     // TODO: Can we par_iter this?
     for (entity, mut predicted, maybe_authoritative) in q.iter_mut() {
+        let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
         for (&comp_id, pred_hist) in predicted.iter_mut() {
             let &reg_idx = registry.ids.get(&comp_id).unwrap();
             let component = registry.components.get(reg_idx).unwrap();
@@ -118,7 +118,6 @@ fn load_and_clear_prediction(
             let mut queue = std::mem::take(&mut load_queue);
             commands.queue(move |world: &mut World| queue.apply(world));
         }
-        load_commands = Commands::new_from_entities(&mut load_queue, entities);
     }
 }
 
@@ -139,11 +138,11 @@ fn load_confirmed_authoritative(
 ) {
     let mut inserts = InsertBatch::new();
     let mut load_queue = CommandQueue::default();
-    let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
     let mut removes = RemoveBatch::new();
 
     // TODO: Can we par_iter this?
     for (entity, authoritative, confirmed) in q.iter_mut() {
+        let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
         for (&comp_id, auth_hist) in authoritative.iter() {
             let &reg_idx = registry.ids.get(&comp_id).unwrap();
             let component = registry.components.get(reg_idx).unwrap();
@@ -191,7 +190,6 @@ fn load_confirmed_authoritative(
             let mut queue = std::mem::take(&mut load_queue);
             commands.queue(move |world: &mut World| queue.apply(world));
         }
-        load_commands = Commands::new_from_entities(&mut load_queue, entities);
     }
 }
 
@@ -204,10 +202,10 @@ fn reinsert_predicted(
 ) {
     let mut inserts = InsertBatch::new();
     let mut load_queue = CommandQueue::default();
-    let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
 
     // TODO: Can we par_iter this?
     for (entity, archetype, predicted, authoritative) in q.iter_mut() {
+        let mut load_commands = Commands::new_from_entities(&mut load_queue, entities);
         for (&comp_id, pred_hist) in predicted.iter() {
             if archetype.contains(comp_id) {
                 continue;
@@ -217,9 +215,8 @@ fn reinsert_predicted(
                 continue;
             };
 
-            if authoritative.contains_key(&comp_id) {
-                continue;
-            }
+            // TODO: only insert if authoritative is not known yet
+            _ = authoritative;
 
             let &reg_idx = registry.ids.get(&comp_id).unwrap();
             let component = registry.components.get(reg_idx).unwrap();
@@ -232,12 +229,11 @@ fn reinsert_predicted(
         if !inserts.is_empty() {
             commands.entity(entity).queue(inserts.clone());
             inserts.clear();
+        }
 
-            if !load_queue.is_empty() {
-                let mut queue = std::mem::take(&mut load_queue);
-                commands.queue(move |world: &mut World| queue.apply(world));
-            }
-            load_commands = Commands::new_from_entities(&mut load_queue, entities);
+        if !load_queue.is_empty() {
+            let mut queue = std::mem::take(&mut load_queue);
+            commands.queue(move |world: &mut World| queue.apply(world));
         }
     }
 }
@@ -644,33 +640,35 @@ mod tests {
         assert_eq!(Some(&A(5)), e.get::<A>());
     }
 
-    #[test]
-    fn reinsert_predicted_skips_authoritative_components() {
-        let (mut app, comp_a) = init_app::<A, _>(0, super::reinsert_predicted);
+    // TODO: This behavior is temporarily disabled, we need a better version of it
+    //       that isn't as incompatible with required components
+    // #[test]
+    // fn reinsert_predicted_skips_authoritative_components() {
+    //     let (mut app, comp_a) = init_app::<A, _>(0, super::reinsert_predicted);
 
-        let comp_b = app.world_mut().register_component::<B>();
+    //     let comp_b = app.world_mut().register_component::<B>();
 
-        app.world_mut()
-            .resource_scope::<RollbackRegistry, _>(|world, mut registry| {
-                registry.register::<B>(world)
-            });
+    //     app.world_mut()
+    //         .resource_scope::<RollbackRegistry, _>(|world, mut registry| {
+    //             registry.register::<B>(world)
+    //         });
 
-        let mut pred_hist = pred_history(0, comp_a, [a(5)]);
-        pred_hist.insert(comp_b, comp_history(0, [b()]));
+    //     let mut pred_hist = pred_history(0, comp_a, [a(5)]);
+    //     pred_hist.insert(comp_b, comp_history(0, [b()]));
 
-        let auth_hist = auth_history::<A>(0, comp_a, []);
+    //     let auth_hist = auth_history::<A>(0, comp_a, []);
 
-        let e1 = app
-            .world_mut()
-            .spawn((Predicted, pred_hist, auth_hist))
-            .id();
+    //     let e1 = app
+    //         .world_mut()
+    //         .spawn((Predicted, pred_hist, auth_hist))
+    //         .id();
 
-        app.update();
+    //     app.update();
 
-        let e = app.world().entity(e1);
-        assert_eq!(None, e.get::<A>());
-        assert_eq!(Some(&B), e.get::<B>());
-    }
+    //     let e = app.world().entity(e1);
+    //     assert_eq!(None, e.get::<A>());
+    //     assert_eq!(Some(&B), e.get::<B>());
+    // }
 
     // TODO: Test command order, commands from loading should apply AFTER inserts/removes
 }
