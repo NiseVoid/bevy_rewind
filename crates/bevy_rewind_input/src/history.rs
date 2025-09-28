@@ -127,7 +127,7 @@ impl<T: InputTrait> InputHistory<T> {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::tests::{Tick, A};
+    use crate::tests::{A, Tick};
 
     pub fn hist<T: InputTrait>(
         first_tick: u32,

@@ -610,7 +610,7 @@ fn remove_histories(mut world: DeferredWorld, ctx: HookContext) {
     world
         .commands()
         .entity(ctx.entity)
-        .remove::<(history::PredictedHistory, AuthoritativeHistory)>();
+        .try_remove::<(history::PredictedHistory, AuthoritativeHistory)>();
 }
 
 /// Data for a tick

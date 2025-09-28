@@ -1,6 +1,6 @@
 use super::{
-    component_history::{ComponentHistory, EntityHistory, TickData},
     RollbackRegistry,
+    component_history::{ComponentHistory, EntityHistory, TickData},
 };
 use crate::{RollbackFrames, RollbackSchedule, RollbackStoreSet, StoreFor, StoreScheduleLabel};
 

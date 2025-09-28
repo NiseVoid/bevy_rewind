@@ -1,9 +1,9 @@
 use crate::AuthoritativeHistory;
 
 use super::{
+    PredictedHistory,
     component::HistoryComponent,
     component_history::{ComponentHistory, TickData},
-    PredictedHistory,
 };
 
 use std::{

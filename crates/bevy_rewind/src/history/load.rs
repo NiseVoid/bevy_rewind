@@ -1,9 +1,9 @@
 use super::{
+    RollbackRegistry,
     authoritative::AuthoritativeHistory,
     batch::{InsertBatch, RemoveBatch},
     component_history::TickData,
     predicted::PredictedHistory,
-    RollbackRegistry,
 };
 use crate::{LoadFrom, Predicted, RollbackLoadSet, RollbackSchedule};
 
@@ -11,6 +11,7 @@ use bevy::{
     ecs::{
         archetype::Archetype,
         entity::Entities,
+        entity_disabling::Disabled,
         world::{CommandQueue, EntityMutExcept},
     },
     prelude::*,
@@ -42,7 +43,7 @@ fn load_and_clear_prediction(
             &mut PredictedHistory,
             Option<(&AuthoritativeHistory, &ConfirmHistory)>,
         ),
-        With<Predicted>,
+        (With<Predicted>, Or<(With<Disabled>, Without<Disabled>)>),
     >,
     registry: Res<RollbackRegistry>,
     previous_tick: Res<LoadFrom>,
@@ -129,7 +130,7 @@ fn load_confirmed_authoritative(
             &AuthoritativeHistory,
             &ConfirmHistory,
         ),
-        With<Predicted>,
+        (With<Predicted>, Or<(With<Disabled>, Without<Disabled>)>),
     >,
     registry: Res<RollbackRegistry>,
     previous_tick: Res<LoadFrom>,
@@ -195,7 +196,10 @@ fn load_confirmed_authoritative(
 
 fn reinsert_predicted(
     mut commands: Commands,
-    mut q: Query<(Entity, &Archetype, &PredictedHistory, &AuthoritativeHistory), With<Predicted>>,
+    mut q: Query<
+        (Entity, &Archetype, &PredictedHistory, &AuthoritativeHistory),
+        (With<Predicted>, Or<(With<Disabled>, Without<Disabled>)>),
+    >,
     registry: Res<RollbackRegistry>,
     previous_tick: Res<LoadFrom>,
     entities: &Entities,
@@ -247,7 +251,7 @@ mod tests {
             component_history::TickData, load::load_confirmed_authoritative,
             predicted::PredictedHistory, test_utils::*,
         },
-        load_and_clear_prediction, RollbackRegistry,
+        RollbackRegistry, load_and_clear_prediction,
     };
     use bevy::{
         ecs::{component::ComponentId, system::ScheduleSystem},

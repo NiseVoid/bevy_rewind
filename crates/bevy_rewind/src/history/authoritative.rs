@@ -134,12 +134,12 @@ fn remove_history_internal(
 mod tests {
     use super::{
         super::{component_history::TickData, test_utils::*},
-        write_history_internal, AuthoritativeHistory,
+        AuthoritativeHistory, write_history_internal,
     };
-    use crate::history::RollbackRegistry;
     use crate::RollbackFrames;
-    use bevy_replicon::shared::replication::deferred_entity::{DeferredChanges, DeferredEntity};
+    use crate::history::RollbackRegistry;
     use TickData::*;
+    use bevy_replicon::shared::replication::deferred_entity::{DeferredChanges, DeferredEntity};
 
     use bevy::prelude::*;
 

@@ -89,7 +89,7 @@ impl<T: Clone> TickData<&T> {
 impl<T: Copy> TickData<&T> {
     pub fn copied(&self) -> TickData<T> {
         use TickData::*;
-        match self {
+        match *self {
             Value(&t) => Value(t),
             Removed => Removed,
             Missing => Missing,
@@ -144,7 +144,7 @@ impl ComponentHistory {
         )
     }
 
-    pub fn get(&self, tick: u32) -> TickData<Ptr> {
+    pub fn get<'a>(&'a self, tick: u32) -> TickData<Ptr<'a>> {
         if tick > self.last_tick {
             return TickData::Missing;
         }
@@ -164,7 +164,7 @@ impl ComponentHistory {
         }
     }
 
-    pub fn get_latest(&self, tick: u32) -> TickData<Ptr> {
+    pub fn get_latest<'a>(&'a self, tick: u32) -> TickData<Ptr<'a>> {
         let ago = self.last_tick.saturating_sub(tick) as usize;
         if ago >= self.len() {
             return TickData::Missing;

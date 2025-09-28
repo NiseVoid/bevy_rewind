@@ -1,8 +1,11 @@
-use crate::{EntityManagementCommands, EntityManagementWorld, SpawnPlugin, SpawnReason, Spawned};
+use crate::{
+    EntityManagementCommands, EntityManagementDeferredWorld, EntityManagementWorld, SpawnPlugin,
+    SpawnReason, Spawned, SpawnedEntities, ToRemove,
+};
 
 use std::marker::PhantomData;
 
-use bevy::prelude::*;
+use bevy::{ecs::world::DeferredWorld, prelude::*};
 
 /// A plugin adding rollback-friendly entity management to the app.
 pub struct EntityManagementPlugin<Tick: Sync + Send + 'static>(PhantomData<Tick>);
@@ -15,11 +18,15 @@ impl<Tick: Sync + Send + 'static> EntityManagementPlugin<Tick> {
 }
 
 impl<Tick: Sync + Send + 'static> Plugin for EntityManagementPlugin<Tick> {
-    fn build(&self, _: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app.init_resource::<ToRemove>();
+    }
 }
 
 impl<Reason: SpawnReason> Plugin for SpawnPlugin<Reason> {
-    fn build(&self, _: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app.init_resource::<SpawnedEntities<Reason>>();
+    }
 }
 
 impl EntityManagementCommands for Commands<'_, '_> {
@@ -32,21 +39,29 @@ impl EntityManagementCommands for Commands<'_, '_> {
         self.spawn(bundle).id()
     }
 
+    fn register_reuse<Reason: SpawnReason>(&mut self, _: &Spawned<Reason>, _: Reason, _: Entity) {}
+
     fn disable_or_despawn(&mut self, entity: Entity) {
         self.entity(entity).despawn();
     }
 }
 
 impl EntityManagementWorld for World {
-    fn reuse_spawn<Reason: SpawnReason>(
-        &mut self,
+    fn reuse_spawn<'a, Reason: SpawnReason>(
+        &'a mut self,
         _: Reason,
         bundle: impl Bundle,
-    ) -> EntityWorldMut {
+    ) -> EntityWorldMut<'a> {
         self.spawn(bundle)
     }
+
+    fn register_reuse<Reason: SpawnReason>(&mut self, _: Reason, _: Entity) {}
 
     fn disable_or_despawn(&mut self, entity: Entity) {
         self.despawn(entity);
     }
+}
+
+impl EntityManagementDeferredWorld for DeferredWorld<'_> {
+    fn register_reuse<Reason: SpawnReason>(&mut self, _: Reason, _: Entity) {}
 }

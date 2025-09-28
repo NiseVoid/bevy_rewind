@@ -76,7 +76,7 @@ impl SparseBlobDeque {
         &mut self.mask
     }
 
-    pub fn get(&self, index: usize) -> Option<Ptr> {
+    pub fn get<'a>(&'a self, index: usize) -> Option<Ptr<'a>> {
         if index >= self.len as usize {
             return None;
         }
@@ -214,15 +214,7 @@ mod tests {
         }
         unsafe { history.append(Some(|ptr: PtrMut| *ptr.deref_mut() = A(3))) };
 
-        for (i, a) in [
-            Some(&A(0)),
-            None,
-            Some(&A(10)),
-            Some(&A(3)),
-            None,
-        ]
-        .iter_enumerate()
-        {
+        for (i, a) in [Some(&A(0)), None, Some(&A(10)), Some(&A(3)), None].iter_enumerate() {
             assert_eq!(a, history.get(i).deref());
         }
     }
@@ -359,7 +351,8 @@ mod tests {
         for i in 0..5 {
             unsafe {
                 history.append(Some(|ptr: PtrMut| {
-                    ptr.deref_mut::<MaybeUninit<D>>().write(D::new(i + 1, &drops));
+                    ptr.deref_mut::<MaybeUninit<D>>()
+                        .write(D::new(i + 1, &drops));
                 }));
             };
         }

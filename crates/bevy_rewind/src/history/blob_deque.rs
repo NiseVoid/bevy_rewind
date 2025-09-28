@@ -2,7 +2,7 @@
 #![deny(clippy::std_instead_of_core)]
 
 extern crate alloc;
-use alloc::alloc::{alloc, dealloc, handle_alloc_error, Layout};
+use alloc::alloc::{Layout, alloc, dealloc, handle_alloc_error};
 use core::{fmt::Write, num::NonZero, ptr::NonNull};
 
 use bevy::ptr::{OwningPtr, Ptr, PtrMut};
@@ -39,7 +39,9 @@ impl core::fmt::Debug for BlobDeque {
                 items.write_str("0x")?;
                 let ptr = self.get(i).unwrap();
                 for offset in 0..size {
-                    write!(items, "{:02x}", unsafe { ptr.byte_add(offset).as_ptr().read() },)?;
+                    write!(items, "{:02x}", unsafe {
+                        ptr.byte_add(offset).as_ptr().read()
+                    },)?;
                 }
             }
         }
@@ -107,7 +109,7 @@ impl BlobDeque {
         self.drop
     }
 
-    pub(crate) fn get(&self, index: usize) -> Option<Ptr> {
+    pub(crate) fn get<'a>(&'a self, index: usize) -> Option<Ptr<'a>> {
         if (self.len as usize) < index + 1 {
             return None;
         }
@@ -119,7 +121,7 @@ impl BlobDeque {
         Some(unsafe { Ptr::new(self.data).byte_add(offset) })
     }
 
-    pub(crate) fn get_mut(&mut self, index: usize) -> Option<PtrMut> {
+    pub(crate) fn get_mut<'a>(&'a mut self, index: usize) -> Option<PtrMut<'a>> {
         let size = self.layout.size();
         if size == 0 || (self.len as usize) < index + 1 {
             // size 0 cannot be mutated
@@ -192,15 +194,17 @@ impl BlobDeque {
         at: usize,
         write_fn: impl FnOnce(PtrMut<'a>),
     ) -> Option<()> {
-        if let Some(ptr) = unsafe { self.new_ptr_at(at) } {
-            write_fn(ptr);
+        if let Some(maybe_ptr) = unsafe { self.new_ptr_at(at) } {
+            if let Some(ptr) = maybe_ptr {
+                write_fn(ptr);
+            }
             Some(())
         } else {
             None
         }
     }
 
-    unsafe fn new_ptr_at<'a>(&mut self, at: usize) -> Option<PtrMut<'a>> {
+    unsafe fn new_ptr_at<'a>(&mut self, at: usize) -> Option<Option<PtrMut<'a>>> {
         if self.len == self.capacity || at > self.len() {
             return None;
         }
@@ -208,8 +212,7 @@ impl BlobDeque {
         let size = self.layout.size();
         if size == 0 {
             self.len = (self.len + 1).min(self.capacity);
-            // TODO: Return Ok(None) so it isn't considered an error
-            return None;
+            return Some(None);
         }
 
         if at == self.len() {
@@ -266,7 +269,7 @@ impl BlobDeque {
         let offset = self.get_offset(at);
 
         self.len += 1;
-        Some(unsafe { PtrMut::new(self.data).byte_add(offset) })
+        Some(Some(unsafe { PtrMut::new(self.data).byte_add(offset) }))
     }
 
     pub fn resize(&mut self, capacity: NonZero<u8>) {
@@ -386,7 +389,12 @@ fn repeat_layout(layout: &Layout, n: usize) -> Option<(Layout, usize)> {
 
     // SAFETY: self.align is already known to be valid and alloc_size has been
     // padded already.
-    unsafe { Some((Layout::from_size_align_unchecked(alloc_size, layout.align()), padded_size)) }
+    unsafe {
+        Some((
+            Layout::from_size_align_unchecked(alloc_size, layout.align()),
+            padded_size,
+        ))
+    }
 }
 
 /// From <https://doc.rust-lang.org/beta/src/core/alloc/layout.rs.html>
@@ -601,7 +609,10 @@ mod tests {
 
         assert_eq!(3, history.len());
         for i in 0..3 {
-            assert_eq!(Some(&A(i as u16 + 1)), history.get(i).map(|v| unsafe { v.deref() }));
+            assert_eq!(
+                Some(&A(i as u16 + 1)),
+                history.get(i).map(|v| unsafe { v.deref() })
+            );
         }
         assert_eq!(None, history.get(3).map(|v| unsafe { v.deref::<A>() }));
     }
@@ -657,7 +668,12 @@ mod tests {
                 case_str
             );
         }
-        assert_eq!(None, history.get(7).map(|v| unsafe { v.deref::<A>() }), "{}", case_str);
+        assert_eq!(
+            None,
+            history.get(7).map(|v| unsafe { v.deref::<A>() }),
+            "{}",
+            case_str
+        );
     }
 
     #[test]
