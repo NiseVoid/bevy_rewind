@@ -1,3 +1,5 @@
+use std::net::{Ipv4Addr, SocketAddrV4};
+
 use bevy::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_example_backend::{ExampleClient, ExampleServer};
@@ -15,7 +17,7 @@ pub fn connect_plugin(app: &mut App) {
         .init_state::<ConnectionState>()
         .enable_state_scoped_entities::<ConnectionState>()
         .add_systems(OnEnter(ConnectionState::Menu), setup_connect_ui)
-        .add_systems(OnEnter(ConnectionState::Connecting), send_connect)
+        .add_systems(OnEnter(ClientState::Connected), send_connect)
         .add_systems(
             Update,
             send_current_tick.run_if(resource_exists::<ExampleServer>),
@@ -95,9 +97,9 @@ fn send_current_tick(
     mut spawns: EventReader<FromClient<Connect>>,
     tick: Res<GameTick>,
 ) {
-    for &FromClient { client_entity, .. } in spawns.read() {
+    for &FromClient { client_id, .. } in spawns.read() {
         commands.send_event(ToClients {
-            mode: SendMode::Direct(client_entity),
+            mode: SendMode::Direct(client_id),
             event: CurrentTick(*tick),
         });
     }
@@ -151,7 +153,7 @@ fn host_or_join(
         commands.set_state(ConnectionState::InGame);
     } else if **join_button == Interaction::Pressed {
         eprintln!("Joining server on {port}");
-        let Ok(socket) = ExampleClient::new(port) else {
+        let Ok(socket) = ExampleClient::new(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port)) else {
             return;
         };
         commands.insert_resource(socket);

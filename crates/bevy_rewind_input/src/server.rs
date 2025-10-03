@@ -27,21 +27,21 @@ impl<T: InputTrait, Tick: TickSource> Plugin for InputQueueServerPlugin<T, Tick>
         app.add_systems(
             PreUpdate,
             receive_inputs::<T, Tick>
-                .run_if(server_running)
-                .after(ServerSet::Receive)
+                .run_if(in_state(ServerState::Running))
+                .after(ServerSystems::Receive)
                 .in_set(InputQueueSet::Network),
         )
         .add_systems(
             PostUpdate,
             send_inputs::<T, Tick>
-                .run_if(server_running)
-                .before(ServerSet::Send)
+                .run_if(in_state(ServerState::Running))
+                .before(ServerSystems::Send)
                 .in_set(InputQueueSet::Network),
         )
         .add_systems(
             self.schedule,
             load_inputs::<T, Tick>
-                .run_if(server_running)
+                .run_if(in_state(ServerState::Running))
                 .in_set(InputQueueSet::Load)
                 // In case the configured schedule is PreUpdate
                 .after(InputQueueSet::Network),
@@ -76,15 +76,14 @@ fn receive_inputs<T: InputTrait, Tick: TickSource>(
     mut query: Query<&mut InputQueue<T>>,
     cur_tick: Res<Tick>,
 ) {
-    for FromClient {
-        client_entity,
-        event,
-    } in events.read()
-    {
+    for FromClient { client_id, event } in events.read() {
+        let Some(client_entity) = client_id.entity() else {
+            continue;
+        };
         let entity = input_target
-            .get(*client_entity)
+            .get(client_entity)
             .map(|(specific, all)| specific.map(|e| **e).unwrap_or(**all.unwrap()))
-            .unwrap_or(*client_entity);
+            .unwrap_or(client_entity);
         let Ok(mut input_queue) = query.get_mut(entity) else {
             continue;
         };
@@ -167,15 +166,15 @@ mod tests {
 
         app.world_mut().send_event_batch([
             FromClient {
-                client_entity: e1,
+                client_id: ClientId::Client(e1),
                 event: hist(4, [A(1), A(2), A(3)]),
             },
             FromClient {
-                client_entity: e2,
+                client_id: ClientId::Client(e2),
                 event: hist(5, [A(1), A(2), A(3)]),
             },
             FromClient {
-                client_entity: e4,
+                client_id: ClientId::Client(e4),
                 event: hist(6, [A(1), A(2), A(3)]),
             },
         ]);
@@ -313,16 +312,14 @@ mod tests {
 
         let e1 = app.world_mut().spawn(InputQueue::<A>::default()).id();
 
-        let mut server = RepliconServer::default();
-        server.set_running(true);
-        app.add_event::<FromClient<InputHistory<A>>>()
+        app.init_resource::<ServerMessages>()
+            .add_event::<FromClient<InputHistory<A>>>()
             .add_event::<ToClients<HistoryFor<A>>>()
             .add_plugins(InputQueueServerPlugin::<A, Tick>::new(Update.intern()))
-            .insert_resource(server)
             .insert_resource(Tick(5));
 
         app.world_mut().send_event_batch([FromClient {
-            client_entity: e1,
+            client_id: ClientId::Client(e1),
             event: hist(4, [A(1), A(2), A(3)]),
         }]);
 

@@ -13,7 +13,7 @@ use bevy_replicon::{
     shared::{
         replication::{
             deferred_entity::DeferredEntity,
-            replication_registry::{
+            registry::{
                 ctx::{RemoveCtx, WriteCtx},
                 rule_fns::RuleFns,
             },

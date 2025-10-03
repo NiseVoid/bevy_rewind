@@ -49,7 +49,7 @@ pub struct Spawned<'w, Reason: SpawnReason> {
     entities: ResMut<'w, SpawnedEntities<Reason>>,
     to_remove: Res<'w, ToRemove>,
     #[cfg(feature = "client")]
-    authority: Option<Res<'w, client::HasAuthority>>,
+    authority: Option<Res<'w, State<bevy_replicon::prelude::ClientState>>>,
 }
 
 #[derive(Debug)]

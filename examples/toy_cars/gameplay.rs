@@ -22,16 +22,19 @@ pub fn gameplay_plugin(app: &mut App) {
             (
                 setup_game,
                 (
-                    claim_car.run_if(client_connected),
-                    add_replicated.run_if(server_running),
+                    claim_car.run_if(in_state(ClientState::Connected)),
+                    add_replicated.run_if(in_state(ServerState::Running)),
                 ),
             )
                 .chain(),
         )
-        .add_systems(FixedPreUpdate, spawn_client_cars.run_if(server_running))
+        .add_systems(
+            FixedPreUpdate,
+            spawn_client_cars.run_if(in_state(ServerState::Running)),
+        )
         .add_systems(
             SimulationUpdate,
-            (move_cars, spawn_ball.run_if(server_running))
+            (move_cars, spawn_ball.run_if(in_state(ServerState::Running)))
                 .run_if(in_state(ConnectionState::InGame)),
         )
         .add_systems(SimulationPostUpdate, process_goals.after(PhysicsSet::Sync))
@@ -174,39 +177,39 @@ fn spawn_ball(
 
 #[derive(Event, Serialize, Deserialize)]
 struct LocalEntities {
-    car: Entity,
+    time: u128,
 }
 
 fn claim_car(mut commands: Commands, car: Single<Entity, With<OurCar>>) {
-    commands.send_event(LocalEntities { car: *car });
-    commands.entity(*car).insert(InputAuthority);
+    let time = std::time::UNIX_EPOCH.elapsed().unwrap().as_millis();
+    commands.send_event(LocalEntities { time });
+    commands
+        .entity(*car)
+        .insert((InputAuthority, Signature::from(time)));
 }
 
 fn spawn_client_cars(mut commands: Commands, mut spawns: EventReader<FromClient<LocalEntities>>) {
     for &FromClient {
-        client_entity,
-        event: LocalEntities {
-            car: client_local_entity,
-        },
+        client_id,
+        event: LocalEntities { time: sig },
     } in spawns.read()
     {
+        let Some(client_entity) = client_id.entity() else {
+            continue;
+        };
         let car_entity = commands
             .spawn((
                 Car,
                 Replicated,
                 InputQueue::<GameInput>::default(),
                 Transform::from_xyz(0., (0.3 + 0.35) / 2., 0.),
+                Signature::from(sig),
             ))
             .id();
 
-        let mut entity_map = ClientEntityMap::default();
-
-        entity_map.insert(car_entity, client_local_entity);
-        commands.entity(client_entity).insert((
-            InputTarget::all(car_entity),
-            AuthorizedClient,
-            entity_map,
-        ));
+        commands
+            .entity(client_entity)
+            .insert((InputTarget::all(car_entity), AuthorizedClient));
     }
 }
 

@@ -3,7 +3,7 @@
 use crate::{HistoryFor, InputHistory, InputQueueSet, InputTrait, TickSource};
 
 use bevy::{ecs::schedule::InternedScheduleLabel, prelude::*};
-use bevy_replicon::{client::ClientSet, prelude::client_connected};
+use bevy_replicon::{client::ClientSystems, prelude::ClientState};
 
 pub(super) struct InputQueueClientPlugin<T: InputTrait, Tick: TickSource> {
     schedule: InternedScheduleLabel,
@@ -25,27 +25,27 @@ impl<T: InputTrait, Tick: TickSource> Plugin for InputQueueClientPlugin<T, Tick>
         app.add_systems(
             PreUpdate,
             receive_inputs::<T>
-                .run_if(client_connected)
-                .after(ClientSet::Receive)
+                .run_if(in_state(ClientState::Connected))
+                .after(ClientSystems::Receive)
                 .in_set(InputQueueSet::Network),
         )
         .add_systems(
             self.schedule,
             load_inputs::<T, Tick>
                 .in_set(InputQueueSet::Load)
-                .run_if(client_connected),
+                .run_if(in_state(ClientState::Connected)),
         )
         .add_systems(
             FixedPostUpdate,
             store_inputs::<T, Tick>
                 .in_set(InputQueueSet::Clean)
-                .run_if(client_connected),
+                .run_if(in_state(ClientState::Connected)),
         )
         .add_systems(
             PostUpdate,
             send_input_events::<T>
-                .run_if(client_connected)
-                .before(ClientSet::Send)
+                .run_if(in_state(ClientState::Connected))
+                .before(ClientSystems::Send)
                 .in_set(InputQueueSet::Network),
         );
     }

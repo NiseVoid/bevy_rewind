@@ -1,17 +1,13 @@
 use crate::connect::ConnectionState;
 
 use bevy::prelude::*;
-use bevy_replicon::{prelude::server_running, shared::replicon_tick::RepliconTick};
+use bevy_replicon::shared::replicon_tick::RepliconTick;
 use serde::{Deserialize, Serialize};
 
 pub fn tick_plugin(app: &mut App) {
     app.init_resource::<GameTick>().add_systems(
         FixedPreUpdate,
-        (
-            increment_tick,
-            bevy_replicon::server::increment_tick.run_if(server_running),
-        )
-            .run_if(not(in_state(ConnectionState::Menu))),
+        increment_tick.run_if(not(in_state(ConnectionState::Menu))),
     );
 }
 

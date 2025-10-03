@@ -11,10 +11,9 @@ use bevy::{
     prelude::*,
 };
 use bevy_replicon::{
-    client::ClientSet,
-    prelude::RepliconClient,
+    prelude::ClientState,
     shared::{
-        replication::replication_registry::{ReplicationRegistry, ctx::DespawnCtx},
+        replication::registry::{ReplicationRegistry, ctx::DespawnCtx},
         replicon_tick::RepliconTick,
     },
 };
@@ -57,7 +56,6 @@ impl<Tick: TickSource> Plugin for EntityManagementPlugin<Tick> {
         .insert_resource(GetTickDeferred(|world| (*world.resource::<Tick>()).into()))
         .init_resource::<HasAuthority>()
         .init_resource::<ToRemove>()
-        .add_systems(PreUpdate, set_authority.after(ClientSet::Receive))
         .add_systems(RollbackSchedule::BackToPresent, despawn_unspawned_entities);
     }
 }
@@ -69,10 +67,6 @@ impl Default for HasAuthority {
     fn default() -> Self {
         Self(true)
     }
-}
-
-fn set_authority(mut authority: ResMut<HasAuthority>, client: Res<RepliconClient>) {
-    **authority = !client.is_connected();
 }
 
 fn replicon_despawn<Tick: TickSource>(ctx: &DespawnCtx, mut entity: EntityWorldMut) {
@@ -256,7 +250,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
         reason: Reason,
         bundle: impl Bundle,
     ) -> Entity {
-        if spawned.authority.as_ref().map(|v| ***v).unwrap_or(true) {
+        if spawned.authority.as_ref().map(|v| *v.get()) == Some(ClientState::Connected) {
             return self.spawn(bundle).id();
         }
 
@@ -282,7 +276,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
         reason: Reason,
         entity: Entity,
     ) {
-        if spawned.authority.as_ref().map(|v| ***v).unwrap_or(true) {
+        if spawned.authority.as_ref().map(|v| *v.get()) == Some(ClientState::Connected) {
             // TODO: Add Reuse to registered entity
             self.queue(InsertSpawnedEntity(reason, entity));
         }
