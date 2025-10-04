@@ -54,19 +54,23 @@ impl<Tick: TickSource> Plugin for EntityManagementPlugin<Tick> {
         )
         .insert_resource(GetTick(|world| (*world.resource::<Tick>()).into()))
         .insert_resource(GetTickDeferred(|world| (*world.resource::<Tick>()).into()))
-        .init_resource::<HasAuthority>()
         .init_resource::<ToRemove>()
         .add_systems(RollbackSchedule::BackToPresent, despawn_unspawned_entities);
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
-pub(super) struct HasAuthority(bool);
+fn world_has_authority(world: &World) -> bool {
+    let Some(state) = world.get_resource::<State<ClientState>>() else {
+        return true;
+    };
+    *state.get() == ClientState::Disconnected
+}
 
-impl Default for HasAuthority {
-    fn default() -> Self {
-        Self(true)
-    }
+fn spawned_has_authority<R: SpawnReason>(spawned: &Spawned<'_, R>) -> bool {
+    let Some(ref state) = spawned.authority else {
+        return true;
+    };
+    *state.get() == ClientState::Disconnected
 }
 
 fn replicon_despawn<Tick: TickSource>(ctx: &DespawnCtx, mut entity: EntityWorldMut) {
@@ -250,7 +254,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
         reason: Reason,
         bundle: impl Bundle,
     ) -> Entity {
-        if spawned.authority.as_ref().map(|v| *v.get()) == Some(ClientState::Connected) {
+        if spawned_has_authority(spawned) {
             return self.spawn(bundle).id();
         }
 
@@ -276,7 +280,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
         reason: Reason,
         entity: Entity,
     ) {
-        if spawned.authority.as_ref().map(|v| *v.get()) == Some(ClientState::Connected) {
+        if !spawned_has_authority(spawned) {
             // TODO: Add Reuse to registered entity
             self.queue(InsertSpawnedEntity(reason, entity));
         }
@@ -292,7 +296,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
 
 impl EntityManagementEntityWorldMut for EntityWorldMut<'_> {
     fn disable_or_despawn(mut self) {
-        if **self.resource::<HasAuthority>() {
+        if world_has_authority(self.world()) {
             self.despawn();
             return;
         }
@@ -308,7 +312,7 @@ impl EntityManagementWorld for World {
         reason: Reason,
         bundle: impl Bundle,
     ) -> EntityWorldMut<'a> {
-        if **self.resource::<HasAuthority>() {
+        if world_has_authority(self) {
             return self.spawn(bundle);
         }
 
@@ -333,7 +337,7 @@ impl EntityManagementWorld for World {
     }
 
     fn register_reuse<Reason: SpawnReason>(&mut self, reason: Reason, entity: Entity) {
-        if **self.resource::<HasAuthority>() {
+        if world_has_authority(self) {
             return;
         }
 
@@ -349,7 +353,7 @@ impl EntityManagementWorld for World {
         if !self.entities().contains(entity) {
             return;
         }
-        if **self.resource::<HasAuthority>() {
+        if world_has_authority(self) {
             self.despawn(entity);
             return;
         }
@@ -363,7 +367,7 @@ impl EntityManagementWorld for World {
 
 impl EntityManagementDeferredWorld for DeferredWorld<'_> {
     fn register_reuse<Reason: SpawnReason>(&mut self, reason: Reason, entity: Entity) {
-        if **self.resource::<HasAuthority>() {
+        if world_has_authority(self) {
             return;
         }
 
