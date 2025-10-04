@@ -11,7 +11,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_replicon::{
-    prelude::ClientState,
+    prelude::{ClientState, Signature},
     shared::{
         replication::registry::{ReplicationRegistry, ctx::DespawnCtx},
         replicon_tick::RepliconTick,
@@ -265,7 +265,7 @@ impl EntityManagementCommands for Commands<'_, '_> {
             warn!("Failed to reuse {}, creating new entity", entity);
         }
 
-        let new_entity = self.spawn((Reuse, bundle)).id();
+        let new_entity = self.spawn((Reuse, bundle, Signature::from(&reason))).id();
         self.queue(InsertSpawnedEntity(reason, new_entity));
         new_entity
     }
@@ -326,7 +326,7 @@ impl EntityManagementWorld for World {
             return entity_mut;
         }
 
-        let new_entity = self.spawn((Reuse, bundle)).id();
+        let new_entity = self.spawn((Reuse, bundle, Signature::from(&reason))).id();
         self.resource_mut::<SpawnedEntities<Reason>>()
             .insert(reason, tick, new_entity);
         return self.entity_mut(new_entity);
