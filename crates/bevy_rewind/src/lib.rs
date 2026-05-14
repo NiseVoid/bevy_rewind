@@ -24,7 +24,7 @@ use bevy_replicon::{
     client::{confirm_history::EntityReplicated, server_mutate_ticks::MutateTickReceived},
     prelude::*,
     shared::{
-        replication::{command_markers::MarkerConfig, track_mutate_messages::TrackAppExt},
+        replication::{receive_markers::MarkerConfig, track_mutate_messages::TrackAppExt},
         replicon_tick::RepliconTick,
     },
 };
