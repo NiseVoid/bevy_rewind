@@ -22,7 +22,7 @@ fn main() {
             DefaultPlugins,
             // Replicon networking
             RepliconPlugins.set(ServerPlugin {
-                tick_schedule: FixedPreUpdate.intern(),
+                tick_schedule: Some(FixedPreUpdate.intern()),
                 ..default()
             }),
             RepliconExampleClientPlugin,
